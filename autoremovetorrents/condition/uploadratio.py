@@ -11,7 +11,10 @@ class UploadRatioCondition(Condition):
 
     def apply(self, client_status, torrents):
         for torrent in torrents:
-            if self.compare(float(torrent.uploaded)/float(torrent.size), self._ratio, self._comparer):
+            # A zero-size torrent (e.g. a magnet before metadata) has no
+            # meaningful ratio; treat it as 0 so it is never removed here.
+            ratio = float(torrent.uploaded)/float(torrent.size) if torrent.size > 0 else 0.0
+            if self.compare(ratio, self._ratio, self._comparer):
                 self.remove.add(torrent)
             else:
                 self.remain.add(torrent)

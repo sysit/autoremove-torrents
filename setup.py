@@ -2,19 +2,16 @@
 
 from setuptools import setup, find_packages
 from autoremovetorrents.version import __version__
-from autoremovetorrents.compatibility.disk_usage_ import SUPPORT_SHUTIL
-from autoremovetorrents.compatibility.open_ import open_
-from autoremovetorrents.compatibility.pyyaml_version_ import PYYAML_VERSION
 
 setup(name = 'autoremove-torrents',
     version = __version__,
     description = 'Automatically remove torrents according to your strategies.',
-    long_description = open_('README.rst', 'r', encoding='utf-8').read(),
+    long_description = open('README.rst', 'r', encoding='utf-8').read(),
     long_description_content_type = 'text/x-rst',
     classifiers = [
         'Environment :: Console',
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
         'Topic :: Utilities'
     ], # Get classifiers from https://pypi.org/pypi?%3Aaction=list_classifiers
     keywords = 'python autoremove torrent',
@@ -24,13 +21,13 @@ setup(name = 'autoremove-torrents',
     license = 'MIT',
     packages = find_packages(),
     include_package_data = True,
-    zip_safe = True,
+    # PLY writes its generated parsetab.py next to the package at import time,
+    # which is impossible inside a zip
+    zip_safe = False,
     install_requires = [
         'deluge-client',
-        'enum34',
         'ply',
-        '' if SUPPORT_SHUTIL else 'psutil',
-        PYYAML_VERSION,
+        'pyyaml',
         'requests',
     ],
     entry_points = {

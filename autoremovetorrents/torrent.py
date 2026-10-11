@@ -1,6 +1,7 @@
 #-*- coding:utf-8 -*-
 
-from .compatibility.urlparse_ import urlparse_
+from urllib.parse import urlparse
+
 from .util.convertbytes import convert_bytes
 from .util.convertseconds import convert_seconds
 from .util.convertspeed import convert_speed
@@ -17,6 +18,9 @@ class Torrent(object):
 
     # Format torrent info
     def __str__(self):
+        # Every slot goes through disp() and the whole line is formatted with %s,
+        # so a torrent missing optional attributes (e.g. uTorrent provides no
+        # create_time) prints '(Not Provided)' instead of crashing the logger.
         def disp(prop, converter = None):
             if hasattr(self, prop):
                 if converter is None:
@@ -27,16 +31,16 @@ class Torrent(object):
                 return '(Not Provided)'
 
         return ("%s\n" +
-            "\tProgress:%.2f%%\tSize:%s\tRatio:%.3f\tTotal Uploaded:%s\n" +
-            "\tSeeder(connected/total):%d/%d\tLeecher(connected/total):%d/%d\tStatus:%s\n" +
+            "\tProgress:%s\tSize:%s\tRatio:%s\tTotal Uploaded:%s\n" +
+            "\tSeeder(connected/total):%s/%s\tLeecher(connected/total):%s/%s\tStatus:%s\n" +
             "\tDownload Speed:%s(Avg.:%s)\tUpload Speed:%s(Avg.:%s)\n" +
             "\tCreate Time:%s\tSeeding Time:%s\tDownloading Time:%s\tLast Activity:%s\n" +
             "\tCategory:%s\tTracker:%s") % \
             (
                 disp('name'),
-                disp('progress', lambda x: x*100),
+                disp('progress', lambda x: '%.2f%%' % (x*100)),
                 disp('size', convert_bytes),
-                disp('ratio'),
+                disp('ratio', lambda x: '%.3f' % x),
                 disp('uploaded', convert_bytes),
                 disp('connected_seeder'),
                 disp('seeder'),
@@ -54,7 +58,7 @@ class Torrent(object):
                 disp('category', ','.join),
                 disp('tracker', lambda t: \
                     ','.join(
-                        [urlparse_(x).hostname if urlparse_(x).hostname is not None else x for x in t]
+                        [urlparse(x).hostname if urlparse(x).hostname is not None else x for x in t]
                     )
                 ),
             )

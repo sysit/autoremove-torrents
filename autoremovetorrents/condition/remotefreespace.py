@@ -1,9 +1,11 @@
 from .. import logger
+from .base import require_settings
 from .freespacebase import FreeSpaceConditionBase
 from ..util.convertbytes import convert_bytes
 
 class RemoteFreeSpaceCondition(FreeSpaceConditionBase):
     def __init__(self, settings):
+        require_settings(settings, ['action', 'min', 'path'])
         FreeSpaceConditionBase.__init__(self, settings)
 
         # Logger

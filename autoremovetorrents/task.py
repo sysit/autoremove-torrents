@@ -1,6 +1,5 @@
 # -*- coding:utf-8 -*-
 import os
-import time
 import re
 from . import logger
 from .client.qbittorrent import qBittorrent
@@ -53,10 +52,10 @@ class Task(object):
                 torrent_obj.name = hash_
                 self._remove.add(torrent_obj)
 
-        # Print debug logs
+        # Print debug logs (password is masked to keep it out of debug logs)
         self._logger.debug("Configuration of task '%s':" % self._name)
         self._logger.debug('Client: %s, Host: %s, Username: %s, Password: %s' % (
-            self._client_name, self._host, self._username, self._password
+            self._client_name, self._host, self._username, '******'
         ))
         self._logger.debug('Remove Torrents: %s, Remove Torrents and Data: %s' % (
             self._enabled_remove, self._delete_data
@@ -94,15 +93,7 @@ class Task(object):
     # Get all the torrents and properties
     def _get_torrents(self):
         self._logger.info('Getting all the torrents...')
-        last_time = time.time()
-        for hash_value in self._client.torrents_list():
-            # Append new torrent
-            self._torrents.add(self._client.torrent_properties(hash_value))
-            # For a long waiting
-            if time.time() - last_time > 1:
-                self._logger.info('Please wait...We have found %d torrent(s).' %
-                    len(self._torrents))
-                last_time = time.time()
+        self._torrents = self._client.get_all_torrents()
         self._logger.info('Found %d torrent(s) in the client.' % len(self._torrents))
 
     # Apply strategies

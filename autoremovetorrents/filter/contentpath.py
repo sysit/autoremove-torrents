@@ -20,8 +20,8 @@ class ContentPathFilter(Filter):
       excluded_content_paths:
         - /downloads/important
     """
-    def __init__(self, all_content_paths, ac, re):
-        Filter.__init__(self, all_content_paths, ac, re)
+    def __init__(self, all_content_paths, ac, reject):
+        Filter.__init__(self, all_content_paths, ac, reject)
 
     def _match_path(self, torrent_path, patterns):
         """Check if torrent path matches any of the patterns."""
@@ -39,21 +39,18 @@ class ContentPathFilter(Filter):
                 # Exact match
                 if normalized_tp == normalized_pattern:
                     return True
-                
-                # Glob pattern match
-                if fnmatch.fnmatch(normalized_tp, normalized_pattern):
-                    return True
-                
+
                 # Check if pattern is a parent directory
+                # (also covers a torrent whose content_path is a file
+                # inside the pattern directory)
                 if normalized_tp.startswith(normalized_pattern + os.sep):
                     return True
-                
-                # Wildcard matching for patterns ending with /*
-                if pattern.endswith('/*'):
-                    parent = os.path.normpath(pattern[:-2])
-                    if normalized_tp.startswith(parent + os.sep):
-                        return True
-        
+
+                # Glob pattern match (case-sensitive on all platforms,
+                # so behavior is identical across operating systems)
+                if fnmatch.fnmatchcase(normalized_tp, normalized_pattern):
+                    return True
+
         return False
 
     def apply(self, torrents):

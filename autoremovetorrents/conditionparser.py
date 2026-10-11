@@ -1,65 +1,22 @@
 import ply.yacc as yacc
 from . import logger
-from .condition.avgdownloadspeed import AverageDownloadSpeedCondition
-from .condition.avguploadspeed import AverageUploadSpeedCondition
+from .condition import DSL_CONDITIONS
 from .condition.base import Comparer
-from .condition.connectedleecher import ConnectedLeecherCondition
-from .condition.connectedseeder import ConnectedSeederCondition
-from .condition.createtime import CreateTimeCondition
-from .condition.downloaded import DownloadsCondition
-from .condition.downloadspeed import DownloadSpeedCondition
-from .condition.lastactivity import LastActivityCondition
-from .condition.leecher import LeecherCondition
-from .condition.progress import ProgressCondition
-from .condition.ratio import RatioCondition
-from .condition.seeder import SeederCondition
-from .condition.seedingtime import SeedingTimeCondition
-from .condition.downloadingtime import DownloadingTimeCondition
-from .condition.size import SizeCondition
-from .condition.uploaded import UploadsCondition
-from .condition.uploadratio import UploadRatioCondition
-from .condition.uploadspeed import UploadSpeedCondition
 from .conditionlexer import ConditionLexer
 from .exception.nosuchcondition import NoSuchCondition
 from .exception.syntaxerror import ConditionSyntaxError
 
 class ConditionParser(object):
-    # Condition Map (as constant)
-    _condition_map = {
-        'average_downloadspeed': AverageDownloadSpeedCondition,
-        'average_uploadspeed': AverageUploadSpeedCondition,
-        'connected_leecher': ConnectedLeecherCondition,
-        'connected_seeder': ConnectedSeederCondition,
-        'create_time': CreateTimeCondition,
-        'download': DownloadsCondition,
-        'download_speed': DownloadSpeedCondition,
-        'last_activity': LastActivityCondition,
-        'leecher': LeecherCondition,
-        'progress': ProgressCondition,
-        'ratio': RatioCondition,
-        'seeder': SeederCondition,
-        'seeding_time': SeedingTimeCondition,
-        'downloading_time': DownloadingTimeCondition,
-        'size': SizeCondition,
-        'upload': UploadsCondition,
-        'upload_ratio': UploadRatioCondition,
-        'upload_speed': UploadSpeedCondition,
-    }
-
-    # Condition expression
-    _expression = ''
-
-    # All of the torrents
-    _torrent_list = set()
-    # To be removed torrents
-    remove = set()
-    # To be remained torrents
-    remain = set()
+    # Condition Map (from the central registry)
+    _condition_map = DSL_CONDITIONS
 
     tokens = ConditionLexer.tokens
 
+    # Standard boolean precedence: AND binds tighter than OR,
+    # so `A or B and C` means `A or (B and C)`. Use parentheses to override.
     precedence = (
-        ('left', 'AND', 'OR'),
+        ('left', 'OR'),
+        ('left', 'AND'),
     )
 
     op = {
@@ -114,7 +71,6 @@ class ConditionParser(object):
             raise ConditionSyntaxError('Syntax Error: Unexpected token \'%s\'.' % p.value)
         else:
             raise ConditionSyntaxError('Syntax Error: Unexpected EOF.')
-        self.remain = self._torrent_list
     
     def __init__(self, expression):
         # Initialize lexer and parser
@@ -122,6 +78,12 @@ class ConditionParser(object):
         self.parser = yacc.yacc(module=self, optimize=1)
         # Save expression
         self._expression = expression
+        # All of the torrents (set in apply())
+        self._torrent_list = set()
+        self._client_status = None
+        # Results (set by p_statement during parse)
+        self.remove = set()
+        self.remain = set()
         # Logger
         self._logger = logger.Logger.register(__name__)
     

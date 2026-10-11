@@ -1,13 +1,12 @@
 #-*- coding:utf-8 -*-
-import requests
 import time
 from ..torrent import Torrent
 from ..clientstatus import ClientStatus
 from ..torrentstatus import TorrentStatus
 from ..exception.connectionfailure import ConnectionFailure
 from ..exception.loginfailure import LoginFailure
-from ..exception.nosuchclient import NoSuchClient
 from ..exception.remotefailure import RemoteFailure
+from ..httpsession import HttpSession
 
 class Transmission(object):
     def __init__(self, host):
@@ -19,7 +18,7 @@ class Transmission(object):
         self._username = None
         self._password = None
         # Requests Session
-        self._session = requests.Session()
+        self._session = HttpSession()
 
     # Login to Transmission
     def login(self, username, password):
@@ -81,18 +80,10 @@ class Transmission(object):
         ver = self._make_transmission_request('session-get')['rpc-version']
         return str(ver)
 
-    # Get Torrents List
-    def torrents_list(self):
-        torrents_hash = []
-        for torrent in self._make_transmission_request('torrent-get', {'fields': ['hashString']})['torrents']:
-            torrents_hash.append(torrent['hashString'])
-        return torrents_hash
-
-    # Get Torrent Properties
-    def torrent_properties(self, torrent_hash):
+    # Get all the torrents with properties (single RPC call)
+    def get_all_torrents(self):
         result = self._make_transmission_request('torrent-get',
             {
-                'ids': [torrent_hash],
                 'fields': [
                     'hashString',
                     'name',
@@ -112,50 +103,49 @@ class Transmission(object):
                     'peersSendingToUs',
                     'trackerStats',
                     'activityDate',
-                    'uploadedEver',
-                    'secondsSeeding',
                     'downloadedEver',
                     'secondsDownloading',
                     'percentDone',
                     'downloadDir',
                 ]}
             )
-        if len(result['torrents']) == 0: # No such torrent
-            raise NoSuchClient("No such torrent of hash '%s'." % torrent_hash)
-        torrent = result['torrents'][0]
-        # Create torrent object
-        torrent_obj = Torrent()
-        torrent_obj.hash = torrent['hashString']
-        torrent_obj.name = torrent['name']
-        if 'labels' in torrent:
-            torrent_obj.category = torrent['labels']
-        torrent_obj.tracker = [tracker['announce'] for tracker in torrent['trackers']]
-        torrent_obj.status = Transmission._judge_status(torrent['status'], torrent['error'])
-        torrent_obj.stalled = torrent['isStalled']
-        torrent_obj.size = torrent['totalSize']
-        torrent_obj.ratio = torrent['uploadRatio']
-        torrent_obj.uploaded = torrent['uploadedEver']
-        torrent_obj.downloaded = torrent['downloadedEver']
-        torrent_obj.create_time = torrent['addedDate']
-        torrent_obj.seeding_time = torrent['secondsSeeding']
-        torrent_obj.downloading_time = torrent['secondsDownloading']
-        torrent_obj.upload_speed = torrent['rateUpload']
-        torrent_obj.download_speed = torrent['rateDownload']
-        torrent_obj.seeder = sum([tracker['seederCount'] for tracker in torrent['trackerStats']])
-        torrent_obj.connected_seeder = torrent['peersSendingToUs']
-        torrent_obj.leecher = sum([tracker['leecherCount'] for tracker in torrent['trackerStats']])
-        torrent_obj.connected_leecher = torrent['peersGettingFromUs']
-        # Convert to time interval since last activity
-        torrent_obj.last_activity = time.time() - torrent['activityDate'] \
-            if torrent['activityDate'] > 0 else None
-        torrent_obj.average_upload_speed = torrent['uploadedEver'] / torrent['secondsSeeding'] if torrent['secondsSeeding'] != 0 else 0
-        torrent_obj.average_download_speed = torrent['downloadedEver'] / torrent['secondsDownloading'] if torrent['secondsDownloading'] != 0 else 0
-        torrent_obj.progress = torrent['percentDone']
-        # Content path (download directory)
-        if 'downloadDir' in torrent:
-            torrent_obj.content_path = torrent['downloadDir']
+        now = time.time()
+        torrents = set()
+        for torrent in result['torrents']:
+            # Create torrent object
+            torrent_obj = Torrent()
+            torrent_obj.hash = torrent['hashString']
+            torrent_obj.name = torrent['name']
+            if 'labels' in torrent:
+                torrent_obj.category = torrent['labels']
+            torrent_obj.tracker = [tracker['announce'] for tracker in torrent['trackers']]
+            torrent_obj.status = Transmission._judge_status(torrent['status'], torrent['error'])
+            torrent_obj.stalled = torrent['isStalled']
+            torrent_obj.size = torrent['totalSize']
+            torrent_obj.ratio = torrent['uploadRatio']
+            torrent_obj.uploaded = torrent['uploadedEver']
+            torrent_obj.downloaded = torrent['downloadedEver']
+            torrent_obj.create_time = torrent['addedDate']
+            torrent_obj.seeding_time = torrent['secondsSeeding']
+            torrent_obj.downloading_time = torrent['secondsDownloading']
+            torrent_obj.upload_speed = torrent['rateUpload']
+            torrent_obj.download_speed = torrent['rateDownload']
+            torrent_obj.seeder = sum([tracker['seederCount'] for tracker in torrent['trackerStats']])
+            torrent_obj.connected_seeder = torrent['peersSendingToUs']
+            torrent_obj.leecher = sum([tracker['leecherCount'] for tracker in torrent['trackerStats']])
+            torrent_obj.connected_leecher = torrent['peersGettingFromUs']
+            # Convert to time interval since last activity
+            torrent_obj.last_activity = now - torrent['activityDate'] \
+                if torrent['activityDate'] > 0 else None
+            torrent_obj.average_upload_speed = torrent['uploadedEver'] / torrent['secondsSeeding'] if torrent['secondsSeeding'] != 0 else 0
+            torrent_obj.average_download_speed = torrent['downloadedEver'] / torrent['secondsDownloading'] if torrent['secondsDownloading'] != 0 else 0
+            torrent_obj.progress = torrent['percentDone']
+            # Content path (download directory)
+            if 'downloadDir' in torrent:
+                torrent_obj.content_path = torrent['downloadDir']
 
-        return torrent_obj
+            torrents.add(torrent_obj)
+        return torrents
     
     # Get free space
     def remote_free_space(self, path):

@@ -1,29 +1,27 @@
 #-*- coding:utf-8 -*-
 import re
 import time
-import requests
+from .. import logger
 from ..torrent import Torrent
 from ..clientstatus import ClientStatus
 from autoremovetorrents.exception.connectionfailure import ConnectionFailure
 from autoremovetorrents.exception.loginfailure import LoginFailure
-from autoremovetorrents.exception.nosuchtorrent import NoSuchTorrent
 from autoremovetorrents.exception.remotefailure import RemoteFailure
 from ..torrentstatus import TorrentStatus
+from ..httpsession import HttpSession
 
 class uTorrent(object):
     def __init__(self, host):
+        # Logger
+        self._logger = logger.Logger.register(__name__)
         # Token
         self._token = ''
         # uTorrent version
         self._version = ''
         # Request Session
-        self._session = requests.Session()
+        self._session = HttpSession()
         # Server information
         self._host = host
-        # Torrents list cache
-        self._torrents_list_cache = []
-        self._refresh_cycle = 30
-        self._refresh_time = 0
 
     # Login to uTorrent
     def login(self, username, password):
@@ -49,52 +47,44 @@ class uTorrent(object):
     def client_status(self):
         # In uTorrent we can only get the total download/upload speed,
         # and we should get it by summing the torrents list manually.
-        
+
         # Get torrent list
-        if time.time() - self._refresh_time > self._refresh_cycle:
-            self.torrents_list()
-        
+        result = self._get_torrents_list_raw()
+
         # Get sum
         download_speed = 0
         upload_speed = 0
-        for torrent in self._torrents_list_cache['torrents']:
+        for torrent in result['torrents']:
             upload_speed += torrent[8]
-            download_speed += torrent[8]
-        
+            download_speed += torrent[9]
+
         # Generate client status
         cs = ClientStatus()
         cs.download_speed = download_speed
         cs.upload_speed = upload_speed
 
         return cs
-    
-    # Get uTorrent Version
-    def version(self):
-        if self._version == '': # Call torrents_list() to get the version
-            self.torrents_list()
-        return ('uTorrent (bulid %s)' % str(self._version))
-    
-    # Get API Version
-    def api_version(self):
-        return 'Unknown' # There is no interfaces to check the API version
-    
-    # Get Torrents List
-    def torrents_list(self):
-        # Request torrents list
-        torrents_hash = []
+
+    # Request the raw torrents list (also updates the version)
+    def _get_torrents_list_raw(self):
         request = self._session.get(self._host+'/gui/', params={'list':1, 'token':self._token})
         request.encoding = 'utf-8'
         if request.status_code != 200: # Error
             raise RemoteFailure('The server reponsed %s.' % request.text)
         result = request.json()
-        self._torrents_list_cache = result
-        self._refresh_time = time.time()
         # Get version
         self._version = result['build']
-        # Get hash for each torrent
-        for torrent in result['torrents']:
-            torrents_hash.append(torrent[0])
-        return torrents_hash
+        return result
+
+    # Get uTorrent Version
+    def version(self):
+        if self._version == '': # Call the torrents list to get the version
+            self._get_torrents_list_raw()
+        return ('uTorrent (build %s)' % str(self._version))
+
+    # Get API Version
+    def api_version(self):
+        return 'Unknown' # There is no interfaces to check the API version
 
     # Get Torrent Job Properties
     def _torrent_job_properties(self, torrent_hash):
@@ -102,38 +92,44 @@ class uTorrent(object):
             params={'action':'getprops', 'token':self._token, 'hash':torrent_hash})
         request.encoding = 'utf-8'
         return request.json()['props'][0]
-    
-    # Get Torrent Properties
-    def torrent_properties(self, torrent_hash):
-        if time.time() - self._refresh_time > self._refresh_cycle: # Refresh
-            self.torrents_list()
-        for torrent in self._torrents_list_cache['torrents']:
-            if torrent[0] == torrent_hash:
-                # Properties
-                properties = self._torrent_job_properties(torrent_hash)
-                # Create torrent object
-                torrent_obj = Torrent()
-                torrent_obj.hash = torrent[0]
-                torrent_obj.name = torrent[2]
-                # The category list will be empty if a torrent was not specified categories
-                torrent_obj.category = [torrent[11]] if len(torrent[11]) > 0 else []
-                torrent_obj.tracker = properties['trackers'].split()
-                torrent_obj.status = uTorrent._judge_status(torrent[1], torrent[4])
-                torrent_obj.size = torrent[3]
-                torrent_obj.ratio = torrent[7]/1000
-                torrent_obj.downloaded = torrent[5]
-                torrent_obj.uploaded = torrent[6]
-                torrent_obj.upload_speed = properties['ulrate']
-                torrent_obj.download_speed = properties['dlrate']
-                torrent_obj.seeder = torrent[15]
-                torrent_obj.connected_seeder = torrent[14]
-                torrent_obj.leecher = torrent[13]
-                torrent_obj.connected_leecher = torrent[12]
-                torrent_obj.progress = torrent[4]
 
-                return torrent_obj
-        # Not Found
-        raise NoSuchTorrent('No such torrent.')
+    # Get all the torrents with properties
+    def get_all_torrents(self):
+        # Request torrents list
+        result = self._get_torrents_list_raw()
+        # Fetch properties for each torrent
+        torrents = set()
+        last_time = time.time()
+        for i, torrent in enumerate(result['torrents']):
+            # Properties
+            properties = self._torrent_job_properties(torrent[0])
+            # Create torrent object
+            torrent_obj = Torrent()
+            torrent_obj.hash = torrent[0]
+            torrent_obj.name = torrent[2]
+            # The category list will be empty if a torrent was not specified categories
+            torrent_obj.category = [torrent[11]] if len(torrent[11]) > 0 else []
+            torrent_obj.tracker = properties['trackers'].split()
+            torrent_obj.status = uTorrent._judge_status(torrent[1], torrent[4])
+            torrent_obj.size = torrent[3]
+            torrent_obj.ratio = torrent[7]/1000
+            torrent_obj.downloaded = torrent[5]
+            torrent_obj.uploaded = torrent[6]
+            torrent_obj.upload_speed = properties['ulrate']
+            torrent_obj.download_speed = properties['dlrate']
+            torrent_obj.seeder = torrent[15]
+            torrent_obj.connected_seeder = torrent[14]
+            torrent_obj.leecher = torrent[13]
+            torrent_obj.connected_leecher = torrent[12]
+            torrent_obj.progress = torrent[4]
+
+            torrents.add(torrent_obj)
+            # For a long waiting
+            if time.time() - last_time > 1:
+                self._logger.info('Please wait...We have fetched %d/%d torrent(s).' %
+                    (i + 1, len(result['torrents'])))
+                last_time = time.time()
+        return torrents
 
     # Judge Torrent Status
     @staticmethod

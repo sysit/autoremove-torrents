@@ -18,15 +18,24 @@ class Logger(object):
     console_handler = None
     # Logging path
     log_path = ''
+    # Loggers configured via register(); init() replaces their handlers without
+    # leaking the previous file handles
+    _loggers = []
 
     @staticmethod
     def init(log_path = '', file_debug_log = False, output_debug_log = False):
         # Set logging path
         Logger.log_path = log_path
 
+        # Close and detach handlers from a previous init() call
+        for lg in Logger._loggers:
+            for handler in lg.handlers[:]:
+                handler.close()
+                lg.removeHandler(handler)
+
         # Initialize the file handler
         Logger.file_handler = logging.FileHandler(os.path.join(
-            Logger.log_path, 
+            Logger.log_path,
             Logger.LOG_FILE_NAME % datetime.now().strftime('%Y-%m-%d')
         ))
         Logger.file_handler.setLevel(logging.DEBUG if file_debug_log else logging.INFO)
@@ -39,18 +48,23 @@ class Logger(object):
         console_handler_formatter = logging.Formatter(Logger.OUTPUT_FORMAT, datefmt=Logger.DATE_FORMAT)
         Logger.console_handler.setFormatter(console_handler_formatter)
 
+        # Attach the new handlers to every registered logger
+        for lg in Logger._loggers:
+            lg.addHandler(Logger.file_handler)
+            lg.addHandler(Logger.console_handler)
+
     @staticmethod
     def register(name):
         logger = logging.getLogger(name)
 
-        # Remove old loggers
-        logger.handlers = []
-
-        # Configure logging
-        logger.setLevel(logging.DEBUG)
-
-        # Add Handlers
-        logger.addHandler(Logger.file_handler)
-        logger.addHandler(Logger.console_handler)
+        # Configure each logger once; init() refreshes the handlers afterwards
+        if logger not in Logger._loggers:
+            logger.handlers = []
+            logger.setLevel(logging.DEBUG)
+            if Logger.file_handler is not None:
+                logger.addHandler(Logger.file_handler)
+            if Logger.console_handler is not None:
+                logger.addHandler(Logger.console_handler)
+            Logger._loggers.append(logger)
 
         return logger

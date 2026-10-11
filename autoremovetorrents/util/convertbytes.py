@@ -1,5 +1,5 @@
 def convert_bytes(byte):
-    units = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB'
+    units = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB',
         'YiB', 'BiB', 'NiB', 'DiB', 'CiB']
     for x in units:
         if divmod(byte, 1024)[0] == 0:

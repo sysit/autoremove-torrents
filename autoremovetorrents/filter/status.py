@@ -3,8 +3,8 @@ from ..torrentstatus import TorrentStatus
 from .. import logger
 
 class StatusFilter(Filter):
-    def __init__(self, all_status, ac, re):
-        Filter.__init__(self, all_status, ac, re)
+    def __init__(self, all_status, ac, reject):
+        Filter.__init__(self, all_status, ac, reject)
 
         self._logger = logger.Logger.register(__name__) # Register a logger
         self._acc_status, self._acc_stallup, self._acc_stalldown = self._convert_status(self._accept)

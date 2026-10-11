@@ -1,7 +1,9 @@
+from .base import require_settings
 from .sortbase import ConditionWithSort
 
 class TorrentNumberCondition(ConditionWithSort):
     def __init__(self, settings):
+        require_settings(settings, ['action', 'limit'])
         ConditionWithSort.__init__(self, settings['action'])
         self._max_limit = settings['limit']
 

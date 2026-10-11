@@ -1,9 +1,11 @@
 #-*- coding:utf-8 -*-
 
+from .base import require_settings
 from .sortbase import ConditionWithSort
 
 class TorrentSizeCondition(ConditionWithSort):
     def __init__(self, settings):
+        require_settings(settings, ['action', 'limit'])
         ConditionWithSort.__init__(self, settings['action'])
         self._limit = settings['limit'] * 1073741824 # limit = limit * 1GiB
 

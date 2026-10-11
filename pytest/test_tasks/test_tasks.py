@@ -1,30 +1,29 @@
-import yaml
+# -*- coding:utf-8 -*-
 import os
+import pytest
+import yaml
 from autoremovetorrents import logger
 from autoremovetorrents.task import Task
-from autoremovetorrents.compatibility.open_ import open_
 
-def test_task(qbittorrent_mocker):
-    # Init loggger
+# Discover all case files
+_CASE_DIR = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'cases')
+_CASES = [os.path.join(_CASE_DIR, f) for f in sorted(os.listdir(_CASE_DIR))
+    if os.path.isfile(os.path.join(_CASE_DIR, f))]
+
+@pytest.mark.parametrize('conf_path', _CASES,
+    ids=[os.path.basename(p) for p in _CASES])
+def test_task(qbittorrent_mocker, conf_path):
+    # Init logger
     logger.Logger.init()
-    lg = logger.Logger.register(__name__)
 
-    # Set root directory
-    root_dir = os.path.join(os.path.realpath(os.path.dirname(__file__)))
-    lg.info('Root directory: %s', root_dir)
-
+    # Mock the client
     qbittorrent_mocker()
 
-    # Load files in directory
-    for file in os.listdir(os.path.join(root_dir, 'cases')):
-        file_path = os.path.join(root_dir, 'cases', file)
+    # Load case file
+    with open(conf_path, 'r', encoding='utf-8') as f:
+        conf = yaml.safe_load(f)
 
-        if os.path.isfile(file_path):
-            lg.info('Loading file: %s', file)
-            with open_(file_path, 'r', encoding='utf-8') as f:
-                conf = yaml.safe_load(f)
-
-            # Run task
-            instance = Task(file, conf['task'], False)
-            instance.execute()
-            assert len(instance.get_removed_torrents()) == conf['result']['num-of-removed']
+    # Run task
+    instance = Task(os.path.basename(conf_path), conf['task'], False)
+    instance.execute()
+    assert len(instance.get_removed_torrents()) == conf['result']['num-of-removed']

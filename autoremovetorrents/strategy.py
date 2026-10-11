@@ -1,28 +1,6 @@
 #-*- coding:utf-8 -*-
 from . import logger
-from .condition.avgdownloadspeed import AverageDownloadSpeedCondition
-from .condition.avguploadspeed import AverageUploadSpeedCondition
-from .condition.connectedleecher import ConnectedLeecherCondition
-from .condition.connectedseeder import ConnectedSeederCondition
-from .condition.createtime import CreateTimeCondition
-from .condition.downloaded import DownloadsCondition
-from .condition.downloadspeed import DownloadSpeedCondition
-from .condition.donothing import EmptyCondition
-from .condition.freespace import FreeSpaceCondition
-from .condition.lastactivity import LastActivityCondition
-from .condition.leecher import LeecherCondition
-from .condition.progress import ProgressCondition
-from .condition.ratio import RatioCondition
-from .condition.remotefreespace import RemoteFreeSpaceCondition
-from .condition.seeder import SeederCondition
-from .condition.seedingtime import SeedingTimeCondition
-from .condition.downloadingtime import DownloadingTimeCondition
-from .condition.size import SizeCondition
-from .condition.torrentnumber import TorrentNumberCondition
-from .condition.torrentsize import TorrentSizeCondition
-from .condition.uploaded import UploadsCondition
-from .condition.uploadratio import UploadRatioCondition
-from .condition.uploadspeed import UploadSpeedCondition
+from .condition import YAML_CONDITIONS
 from .conditionparser import ConditionParser
 from .exception.unsupportedproperty import UnsupportedProperty
 from .filter.category import CategoryFilter
@@ -109,34 +87,26 @@ class Strategy(object):
 
     # Apply Conditions
     def _apply_conditions(self, client_status):
-        # Condition collection
-        conditions = {
-            'create_time': CreateTimeCondition,
-            'free_space': FreeSpaceCondition,
-            'last_activity': LastActivityCondition,
-            'max_average_downloadspeed': AverageDownloadSpeedCondition,
-            'max_connected_seeder': ConnectedSeederCondition,
-            'max_download': DownloadsCondition,
-            'max_downloadspeed': DownloadSpeedCondition,
-            'max_progress': ProgressCondition,
-            'max_seeder': SeederCondition,
-            'max_upload': UploadsCondition,
-            'maximum_number': TorrentNumberCondition,
-            'min_average_uploadspeed': AverageUploadSpeedCondition,
-            'min_connected_leecher': ConnectedLeecherCondition,
-            'min_leecher': LeecherCondition,
-            'min_uploadspeed': UploadSpeedCondition,
-            'nothing': EmptyCondition,
-            'ratio': RatioCondition,
-            'remote_free_space': RemoteFreeSpaceCondition,
-            'remove': ConditionParser,
-            'seed_size': TorrentSizeCondition,
-            'seeding_time': SeedingTimeCondition,
-            'downloading_time': DownloadingTimeCondition,
-            'max_size': SizeCondition,
-            'upload_ratio': UploadRatioCondition,
+        # Warn about unrecognized keys: a typo here used to be silently
+        # ignored, which means the strategy would remove nothing.
+        filter_keys = {
+            'all_categories', 'categories', 'excluded_categories',
+            'all_status', 'status', 'excluded_status',
+            'all_trackers', 'trackers', 'excluded_trackers',
+            'all_content_paths', 'content_paths', 'excluded_content_paths',
         }
         for conf in self._conf:
+            if conf not in YAML_CONDITIONS and conf not in filter_keys and conf != 'remove':
+                self._logger.warning(
+                    "The key '%s' in strategy '%s' is not a known filter or condition, "
+                    "so it was ignored. (Check for typos; see the documentation for "
+                    "supported keys.)" % (conf, self._name)
+                )
+        for conf in self._conf:
+            if conf == 'remove':
+                conditions = {conf: ConditionParser}
+            else:
+                conditions = YAML_CONDITIONS
             if conf in conditions:
                 # Print debug log
                 self._logger.debug('Applying condition %s...' % conditions[conf].__name__)

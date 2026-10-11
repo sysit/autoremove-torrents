@@ -3,8 +3,8 @@
 from .filter import Filter
 
 class CategoryFilter(Filter):
-    def __init__(self, all_category, ac, re):
-        Filter.__init__(self, all_category, ac, re)
+    def __init__(self, all_category, ac, reject):
+        Filter.__init__(self, all_category, ac, reject)
 
     def apply(self, torrents):
         # Pick accepted torrents

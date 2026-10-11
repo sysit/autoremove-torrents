@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- **`remove:` expression precedence** - `and` now binds tighter than `or`
+  (standard boolean precedence), matching the documentation.
+  Previously `A or B and C` was evaluated as `(A or B) and C`, silently
+  producing a different removal set.
+- **uTorrent total download speed** - `client_status` summed the upload-speed
+  field into the download speed.
+- **Unknown strategy keys are now reported** - a typo such as `ratios:` instead
+  of `ratio:` used to be silently ignored (the strategy would remove nothing);
+  it now logs a warning.
+- **ZeroDivisionError** in `upload_ratio` for zero-size torrents (magnets
+  before metadata) - they are kept instead.
+- **Missing condition settings** (`action`, `min`, `limit`, `path`) now raise
+  a clear error instead of a bare `KeyError`; unknown sort `action` values
+  are rejected instead of being silently ignored.
+- **`Torrent.__str__` no longer crashes** on torrents missing optional fields
+  (e.g. uTorrent provides no create/seeding time); it prints `(Not Provided)`.
+- All WebUI requests now use a 30-second timeout, so a stalled client can no
+  longer hang an unattended run forever.
+
+### Changed
+- **Python 3 only** - removed the Python 2 compatibility layer
+  (`autoremovetorrents/compatibility/`); dropped `enum34` and `psutil`
+  dependencies.
+- Clients expose a single `get_all_torrents()` call. Transmission now fetches
+  all torrents in one RPC instead of two requests per torrent; the per-hash
+  caches (and their stale-cache races) are gone.
+- Test suites are parametrized per case file, so each case is an independent
+  test (a failure no longer masks the remaining cases).
+- Removed committed scratch files `test_content_path.py` and `test_config.yml`
+  (**the latter contained live credentials - rotate that Transmission
+  password if it is still in use**).
+
 ## [1.6.0] - 2026-03-26
 
 ### Added

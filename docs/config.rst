@@ -598,6 +598,11 @@ Use the ``remove`` keyword. The ``remove`` keyword is a new keyword in version 1
    * ``and``: Select torrents that meet both the ``Expression 1`` and ``Expression 2`` (intersection).
    * ``or``: Select torrents that meet one or both of the ``Expression 1`` and ``Expression 2`` (Union).
 
+   .. note::
+
+      ``and`` binds tighter than ``or``, so ``A or B and C`` means ``A or (B and C)``.
+      Use parentheses to make the grouping explicit.
+
    Here is an example. For all torrents, it removes those torrents which ratio is greater than 2 **and** seeding time is more than 60000 seconds:
 
    .. code-block:: yaml

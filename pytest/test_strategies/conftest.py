@@ -8,7 +8,6 @@ import json
 from autoremovetorrents.clientstatus import ClientStatus
 from autoremovetorrents.torrent import Torrent
 from autoremovetorrents.torrentstatus import TorrentStatus
-from autoremovetorrents.compatibility.open_ import open_
 
 @pytest.fixture(scope="module")
 def test_data():
@@ -17,7 +16,7 @@ def test_data():
 
     # Load input data
     input_torrents = []
-    with open_(os.path.join(os.path.realpath(os.path.dirname(__file__)),'data.json'), encoding='utf-8') as f:
+    with open(os.path.join(os.path.realpath(os.path.dirname(__file__)),'data.json'), encoding='utf-8') as f:
         data = json.load(f)
     for torrent in data:
         torrent_obj = Torrent()
@@ -50,7 +49,7 @@ def test_data():
     return input_torrents
 
 def _test_env_interval():
-    with open_(os.path.join(os.path.realpath(os.path.dirname(__file__)), 'environment.json'), encoding='utf-8') as f:
+    with open(os.path.join(os.path.realpath(os.path.dirname(__file__)), 'environment.json'), encoding='utf-8') as f:
         env = json.load(f)
     return env
 
@@ -61,7 +60,7 @@ def test_env():
 @pytest.fixture(scope="module")
 def test_status():
     cs = ClientStatus()
-    with open_(os.path.join(os.path.realpath(os.path.dirname(__file__)), 'clientstatus.json'), encoding='utf-8') as f:
+    with open(os.path.join(os.path.realpath(os.path.dirname(__file__)), 'clientstatus.json'), encoding='utf-8') as f:
         data = json.load(f)
 
         cs.download_speed = data['download_speed']
