@@ -2,7 +2,6 @@
 
 from .base import Comparer
 from .base import Condition
-from ..torrentstatus import TorrentStatus
 
 class SeedingTimeCondition(Condition):
     def __init__(self, st, comp = Comparer.GT):

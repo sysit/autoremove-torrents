@@ -105,12 +105,12 @@ class Task(object):
 
     # Remove torrents
     def _remove_torrents(self):
-        # Bulid a dict to store torrent hashes and names which to be deleted
-        delete_list = {}
-        for torrent in self._remove:
-            delete_list[torrent.hash] = torrent.name
+        # Build a dict to store torrent hashes and names which to be deleted
+        delete_list = {torrent.hash: torrent.name for torrent in self._remove}
+        if not delete_list:
+            return
         # Run deletion
-        success, failed = self._client.remove_torrents([hash_ for hash_ in delete_list], self._delete_data)
+        success, failed = self._client.remove_torrents(list(delete_list), self._delete_data)
         # Output logs
         for hash_ in success:
             self._logger.info(

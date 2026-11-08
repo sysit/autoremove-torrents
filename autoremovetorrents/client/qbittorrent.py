@@ -189,6 +189,9 @@ class qBittorrent(object):
             torrent_obj.hash = torrent['hash']
             torrent_obj.name = torrent['name']
             # The category list will be empty if a torrent was not specified categories
+            # ('label' only exists on the qBittorrent 3.x WebUI; other versions
+            # have neither field, and the category filter needs the attribute)
+            torrent_obj.category = []
             if 'category' in torrent:
                 torrent_obj.category = [torrent['category']] if len(torrent['category']) > 0 else []
             elif 'label' in torrent:

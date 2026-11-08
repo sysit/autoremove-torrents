@@ -25,13 +25,11 @@ class ContentPathFilter(Filter):
 
     def _match_path(self, torrent_path, patterns):
         """Check if torrent path matches any of the patterns."""
-        if not hasattr(torrent_path, '__len__'):
-            torrent_path = [torrent_path] if torrent_path else []
-        
+        paths = torrent_path if isinstance(torrent_path, list) else [torrent_path]
         for pattern in patterns:
             # Normalize paths for comparison
             normalized_pattern = os.path.normpath(pattern)
-            for tp in (torrent_path if isinstance(torrent_path, list) else [torrent_path]):
+            for tp in paths:
                 if tp is None:
                     continue
                 normalized_tp = os.path.normpath(tp)

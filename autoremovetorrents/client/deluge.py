@@ -152,7 +152,7 @@ class Deluge(object):
             'Paused': TorrentStatus.Paused,
             'Queued': TorrentStatus.Queued,
             'Seeding': TorrentStatus.Uploading,
-        }[state]
+        }.get(state, TorrentStatus.Unknown) # Unknown states don't crash the run
 
     # Batch Remove Torrents
     def remove_torrents(self, torrent_hash_list, remove_data):

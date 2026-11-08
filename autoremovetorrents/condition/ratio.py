@@ -2,7 +2,6 @@
 
 from .base import Comparer
 from .base import Condition
-from ..torrentstatus import TorrentStatus
 
 class RatioCondition(Condition):
     def __init__(self, r, comp = Comparer.GT):

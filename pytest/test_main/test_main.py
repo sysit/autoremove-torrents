@@ -1,4 +1,5 @@
 import os
+import pytest
 import requests_mock
 from autoremovetorrents import logger
 from autoremovetorrents.main import pre_processor
@@ -16,7 +17,7 @@ def test_main(requests_mock):
     requests_mock.get('mock://qbittorrent/version/api', text='10')
     requests_mock.post('mock://qbittorrent/login', text='Fails.')
     requests_mock.post('mock://transmission/transmission/rpc', status_code=401)
-    
+
     # Open file of command lines
     with open(os.path.join(basic_dir, 'command_lines.txt')) as f:
         lines = f.readlines()
@@ -24,4 +25,9 @@ def test_main(requests_mock):
         for line in lines:
             lg.info('Command line: %s' % line)
             argv = line.split()
-            pre_processor(argv) # Execute it
+            # Every line in the fixture is a failing case (mocked login
+            # failures, an unknown task name, or a missing config file),
+            # so each run must exit with a non-zero exit code
+            with pytest.raises(SystemExit) as exc_info:
+                pre_processor(argv) # Execute it
+            assert exc_info.value.code == 1

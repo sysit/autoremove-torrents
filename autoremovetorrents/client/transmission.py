@@ -116,8 +116,9 @@ class Transmission(object):
             torrent_obj = Torrent()
             torrent_obj.hash = torrent['hashString']
             torrent_obj.name = torrent['name']
-            if 'labels' in torrent:
-                torrent_obj.category = torrent['labels']
+            # Transmission < 3.3 has no 'labels' field; the category filter
+            # iterates torrent.category, so it must always exist
+            torrent_obj.category = torrent['labels'] if 'labels' in torrent else []
             torrent_obj.tracker = [tracker['announce'] for tracker in torrent['trackers']]
             torrent_obj.status = Transmission._judge_status(torrent['status'], torrent['error'])
             torrent_obj.stalled = torrent['isStalled']

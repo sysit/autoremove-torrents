@@ -3,6 +3,34 @@
 ChangeLog
 ==========
 
+Version 1.6.1
+--------------
+
+*Release Date: Saturday, 8 November 2026*
+
+Changes
+++++++++
+
+* **Python 3 only.** The Python 2 compatibility layer has been removed, and the ``enum34`` and ``psutil`` dependencies are no longer needed.
+* Clients expose a single ``get_all_torrents()`` call. Transmission now fetches all torrents in one RPC instead of two requests per torrent.
+* Failed runs now exit with a non-zero exit code, so schedulers such as cron can detect them. ``--task`` with an unknown name lists the available tasks.
+* The ``content_paths`` filter (introduced in 1.6.0) is now documented in the configuration reference. Note that only qBittorrent and Transmission report the download directory.
+
+Fix
+++++
+
+* ``remote_free_space`` refuses to remove torrents when the client reports unknown free space. (Transmission returns ``-1`` for a nonexistent path and qBittorrent 3.x returns ``None``; both used to remove every candidate torrent.)
+* ``remove:`` expression precedence: ``and`` now binds tighter than ``or``, so ``A or B and C`` means ``A or (B and C)``, matching the documentation.
+* uTorrent client status summed the upload-speed field into the total download speed.
+* The category filter no longer crashes for torrents without a category (Transmission < 3.3, qBittorrent v2 list responses).
+* Unknown strategy keys (e.g. a ``ratios:`` typo) are now reported as warnings instead of being silently ignored.
+* Non-string YAML filter values (e.g. ``categories: [2024]``) no longer crash the strategy.
+* Unknown Deluge torrent states map to ``Unknown`` instead of crashing.
+* ``upload_ratio`` no longer raises ``ZeroDivisionError`` for zero-size torrents.
+* Missing condition settings and unknown sort ``action`` values now raise clear errors.
+* ``Torrent.__str__`` no longer crashes on torrents missing optional fields.
+* All WebUI requests use a 30-second timeout.
+
 Version 1.5.5
 --------------
 

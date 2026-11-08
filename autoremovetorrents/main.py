@@ -45,6 +45,9 @@ def pre_processor(argv):
     lg = logger.Logger.register(__name__)
 
     # Run autoremove
+    # Failures set a non-zero exit code so that schedulers (cron, etc.)
+    # can detect failed runs
+    exit_code = 0
     try:
         # Show version
         lg.info('Auto Remove Torrents %s' % __version__)
@@ -52,23 +55,42 @@ def pre_processor(argv):
         lg.info('Loading configurations...')
         with open(conf_path, 'r', encoding='utf-8') as stream:
             result = yaml.safe_load(stream)
+
+        if not result: # Empty file or no task blocks
+            lg.warning('No task(s) found in the file.')
+            sys.exit(exit_code)
+
         lg.info('Found %d task(s) in the file.' % len(result))
 
         # Run tasks
-        if task == None: # Task name specified
+        if task is None: # Run all tasks
             for task_name in result:
                 try:
                     Task(task_name, result[task_name], not view_mode).execute()
                 except Exception:
+                    exit_code = 1
                     lg.error(traceback.format_exc().splitlines()[-1])
                     lg.error('Task %s fails. ' % task_name)
                     lg.debug('Exception Logged', exc_info=True)
+        elif task not in result:
+            exit_code = 1
+            lg.error("The task '%s' doesn't exist. Available tasks: %s." %
+                (task, ', '.join(sorted(result.keys()))))
         else:
-            Task(task, result[task], not view_mode).execute()
+            try:
+                Task(task, result[task], not view_mode).execute()
+            except Exception:
+                exit_code = 1
+                lg.error(traceback.format_exc().splitlines()[-1])
+                lg.debug('Exception Logged', exc_info=True)
+    except SystemExit:
+        raise
     except Exception:
+        exit_code = 1
         lg.error(traceback.format_exc().splitlines()[-1])
         lg.debug('Exception Logged', exc_info=True)
         lg.critical('An error occured. If you think this is a bug or need help, you can submit an issue.')
+    sys.exit(exit_code)
 
 def main():
     pre_processor(sys.argv[1:])

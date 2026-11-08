@@ -100,3 +100,36 @@ def test_unknown_strategy_key_logs_warning(caplog):
         strategy.execute(None, set([make_torrent('t1', ratio=5.0)]))
     warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
     assert any("'ratios'" in r.getMessage() for r in warnings)
+
+
+def test_remote_free_space_with_unusable_value_aborts_and_removes_nothing():
+    # Transmission returns -1 for a nonexistent path and qBittorrent 3.x
+    # returns None. Acting on unknown free space would remove every
+    # candidate, so the condition must raise instead.
+    from types import SimpleNamespace
+
+    from autoremovetorrents.condition.remotefreespace import RemoteFreeSpaceCondition
+    from autoremovetorrents.exception.remotefailure import RemoteFailure
+
+    torrents = set([
+        make_torrent('a', seeding_time=10 ** 9),
+        make_torrent('b', seeding_time=10 ** 9),
+    ])
+    for bad_value in (-1, None):
+        client_status = SimpleNamespace(free_space=lambda path: bad_value)
+        condition = RemoteFreeSpaceCondition({
+            'action': 'remove-old-seeds', 'min': 10, 'path': '/downloads',
+        })
+        with pytest.raises(RemoteFailure) as exc_info:
+            condition.apply(client_status, torrents)
+        assert str(bad_value) in str(exc_info.value)
+        assert not condition.remove
+
+
+def test_numeric_category_value_does_not_crash():
+    # YAML allows non-string category values (e.g. categories: [2024]);
+    # building the debug log used to raise TypeError on them
+    logger.Logger.init()
+    strategy = Strategy('numeric_category', {'categories': [2024], 'ratio': 100.0})
+    strategy.execute(None, set([make_torrent('t1')]))
+    assert not strategy.remove_list

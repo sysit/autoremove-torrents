@@ -114,7 +114,7 @@ Just name your strategy like the task name.
 Part II: Filters
 ++++++++++++++++
 
-The removing condtions are only available for the torrents you chosen. There are 9 filters available.
+The removing condtions are only available for the torrents you chosen. There are 12 filters available.
 
 * ``all_trackers``/``all_categories``/``all_status``: Choose all the trackers/categories/status.
 * ``categories``: Choose torrents in these categories.
@@ -148,12 +148,22 @@ The removing condtions are only available for the torrents you chosen. There are
      - μTorrent doesn't have this status.
 
 * ``excluded_status``: Don't choose these torrents in these status. Available status is shown in the table above.
-
-The result of each filter is a set of torrents. 
+* ``all_content_paths``: Choose all the torrents, regardless of their download directory.
+* ``content_paths``: Choose torrents whose download directory is one of these paths. Three matching styles are supported:
+    - Exact path: ``/downloads/tv``
+    - Parent directory: ``/downloads/tv`` also matches ``/downloads/tv/show``
+    - Glob pattern: ``/downloads/tv/*`` (matching is case-sensitive on all platforms)
+* ``excluded_content_paths``: Don't choose torrents whose download directory is one of these paths.
 
 .. note::
 
-   When two or three of ``categories``, ``trackers`` and ``status`` filter are specificed, the program will take the intersection of these sets, and subtracts set ``excluded_categories``, ``excluded_trackers`` and ``excluded_status``.
+   The download directory is only reported by qBittorrent and Transmission. Torrents fetched from μTorrent or Deluge have no content path, so they will neither be chosen by ``content_paths`` nor excluded by ``excluded_content_paths``.
+
+The result of each filter is a set of torrents.
+
+.. note::
+
+   When two or more of ``categories``, ``trackers``, ``status`` and ``content_paths`` are specificed, the program will take the intersection of these sets, and subtracts set ``excluded_categories``, ``excluded_trackers``, ``excluded_status`` and ``excluded_content_paths``.
 
 
 .. note::
@@ -224,6 +234,24 @@ Select torrents whose categories are Movies or Games, but exclude those torrents
            - Games
          excluded_trackers:
            - tracker.yyy.com
+         # Removing conditions are here
+         # ...
+
+Select those torrents whose download directory is ``/downloads/tv`` (or a subdirectory of it), but exclude those in ``/downloads/tv/important``:
+
+.. code-block:: yaml
+
+   my_task:
+     client: xxx
+     host: xxx
+     username: xxx
+     password: xxx
+     strategies:
+       my_strategy:
+         content_paths:
+           - /downloads/tv
+         excluded_content_paths:
+           - /downloads/tv/important
          # Removing conditions are here
          # ...
 

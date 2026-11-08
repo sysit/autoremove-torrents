@@ -4,7 +4,7 @@
 
 这个程序可以帮助你删除种子。现在你再也不用担心你的磁盘空间了——通过你设置的策略，程序会帮你检查每一个种子是否满足删除的条件；如果是，那就自动地删除它。
 
-这个程序支持 qBittorrent、Transmission 或 μTorrent。 如果你喜欢，可以点个星星 :star2: :)
+这个程序支持 qBittorrent、Transmission、μTorrent 或 Deluge。 如果你喜欢，可以点个星星 :star2: :)
 
 文档：https://autoremove-torrents.readthedocs.io/zh_CN/latest/
 
@@ -26,9 +26,9 @@
 环境要求
 -------------
 
-* Python 2.7 或 Python 3
+* Python 3
 
-推荐使用 Python 3.6 或更高版本的 Python。
+需要 Python 3.6 或更高版本。（自 1.6.1 起不再支持 Python 2。）
 
 
 快速开始

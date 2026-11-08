@@ -64,10 +64,12 @@ class Strategy(object):
 
             # Print debug log
             self._logger.debug('Applying filter %s...' % filter_obj[i].__name__)
+            # str() items: YAML allows non-string values (e.g. categories: [2024]),
+            # which would break an unconditional ', '.join
             self._logger.debug('Filter configrations: ALL: %s; ACCEPTANCES: [%s]; REJECTIONS: [%s].' % (
                 filter_conf[i]['all'],
-                ', '.join(self._conf[accept_field]),
-                ', '.join(self._conf[reject_field])
+                ', '.join(str(item) for item in self._conf[accept_field]),
+                ', '.join(str(item) for item in self._conf[reject_field])
             ))
             self._logger.debug('INPUT: %d torrent(s) before applying the filter.' % len(self.remain_list))
             for torrent in self.remain_list:
