@@ -70,6 +70,20 @@ For qBittorrent/Transmission/μTorrent, this program works with your client's We
 * ``username``: The username of the WebUI.
 * ``password``: The password of the WebUI.
 
+.. note::
+
+   The values of ``host``, ``username`` and ``password`` support environment variable substitution: a value of the form ``$(NAME)`` is replaced with the value of the environment variable ``NAME`` when the task starts. This keeps credentials out of the configuration file:
+
+   .. code-block:: yaml
+
+      my_task:
+        client: qbittorrent
+        host: $(TORRENT_HOST)
+        username: $(TORRENT_USER)
+        password: $(TORRENT_PASS)
+
+   If the environment variable doesn't exist, the literal text (e.g. ``$(TORRENT_HOST)``) is kept.
+
 For Deluge
 +++++++++++
 
@@ -88,7 +102,7 @@ Example:
      client: deluge
      host: 127.0.0.1:58846
      username: localclient
-     password: 357a0d23f09b9f303f58846e41986b36fef2ac88
+     password: 0123456789abcdef0123456789abcdef01234567
 
 .. note::
 
@@ -376,7 +390,7 @@ The first 18 conditions are here. In order to avoid torrents being mistakenly de
 
    Moreover, to remove those torrents that have never been active, please use ``last_activity: Never`` or ``last_activity: None``.
 
-Beside these condition, the other 3 remove conditions are here. The rest of the torrents will be removed if they trigger these conditions.
+Beside these condition, the other 4 remove conditions are here. The rest of the torrents will be removed if they trigger these conditions.
 
 * ``seed_size``: Calculate the total size of the torrents you chosen. If the total size exceeds the limit, some of the torrents will be removed. The following two properties must be specificed.
   
@@ -425,6 +439,12 @@ Beside these condition, the other 3 remove conditions are here. The rest of the 
   - ``min``: Minimum free space, in `GiB`.
   - ``path``: Directory that needs to be checked by the bittorrent client.
   - ``action``: Removing strategy.
+
+  .. note::
+
+     If the client reports an unknown free space (e.g. the path doesn't exist on the server), the strategy aborts with an error instead of removing torrents.
+
+* ``nothing``: Remove nothing. The strategy only applies the filters, so the chosen torrent set can be previewed safely with ``--view``; useful for debugging filters.
 
 .. note::
 

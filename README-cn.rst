@@ -51,6 +51,21 @@
     cd autoremove-torrents
     python3 setup.py install
 
+或者
+
+从 Docker 安装
+^^^^^^^^^^^^^^
+GHCR 上提供了构建好的镜像::
+
+    docker pull ghcr.io/sysit/autoremove-torrents:1.6.1
+
+挂载配置文件运行（加上 ``--view`` 参数可以先预览而不真正删除）::
+
+    docker run --rm \
+      -v $PWD/config.yml:/etc/autoremove/config.yml:ro \
+      ghcr.io/sysit/autoremove-torrents:1.6.1 \
+      --conf /etc/autoremove/config.yml
+
 
 编写配置文件
 ++++++++++++++++++++++++++++++
@@ -101,6 +116,10 @@
 ``--conf`` 参数指示了配置文件的路径。
 ``--log`` 参数指定了存储日志文件的路径（必须存在）。
 
+任务失败时程序会以非零退出码结束，方便 cron 等调度器监测失败的运行。Kubernetes 的 CronJob 示例见`安装文档`_。
+
+.. _安装文档: https://autoremove-torrents.readthedocs.io/zh_CN/latest/inst.html
+
 截图
 -----------
 |Screenshot|
@@ -109,12 +128,14 @@
 
 更新日志
 ----------
-**2024.4.27 星期六*：版本 1.5.5。
+**2026.11.8 星期六**：版本 1.6.1。
 
-* 修复了 qBittorrent 4.5 及其后续版本的兼容性问题。(#157) (#173) (#174) (#182) (#186) 感谢 @Siriussee！
-    - 有关 API 变更的信息，请见 qbittorrent/qBittorrent#17563。
-
-同样，我们修复了最新版 qBittorrent 客户端的单元测试用例。感谢 @amefs！
+* ``remote_free_space`` 条件在客户端报告未知剩余空间时（如路径不存在）中止策略，而不是误删全部种子。
+* ``remove:`` 表达式运算符优先级修正：``and`` 优先于 ``or``，与文档一致。
+* 任务失败时以非零退出码结束；``--task`` 指定不存在的任务时会列出可用任务。
+* 修复 uTorrent 总下载速度统计、无 category 字段的客户端崩溃、未知 Deluge 状态崩溃等问题。
+* 仅支持 Python 3（移除 Python 2 兼容层）；提供 Docker 镜像 ``ghcr.io/sysit/autoremove-torrents``。
+* 新增 ``content_paths`` 下载目录过滤器（1.6.0）。
 
 `更多更新日志`_
 

@@ -54,6 +54,21 @@ Install from GitHub
     cd autoremove-torrents
     python3 setup.py install
 
+or
+
+Install from Docker
+^^^^^^^^^^^^^^^^^^^
+A prebuilt image is published on GHCR::
+
+    docker pull ghcr.io/sysit/autoremove-torrents:1.6.1
+
+Run with your configuration mounted in (add ``--view`` to preview without deleting)::
+
+    docker run --rm \
+      -v $PWD/config.yml:/etc/autoremove/config.yml:ro \
+      ghcr.io/sysit/autoremove-torrents:1.6.1 \
+      --conf /etc/autoremove/config.yml
+
 
 Write your configuration file
 ++++++++++++++++++++++++++++++
@@ -102,6 +117,10 @@ And then, add a line at the end of the file (please confirm the path of the auto
 
 The ``--conf`` indicates the path to the configuration file.
 The ``--log`` argument specifies the path to store the log files (Must be existed).
+
+The program exits with a non-zero exit code when a task fails, so cron-based monitoring can detect failed runs. For Kubernetes, a CronJob example is available in the `documentation`_.
+
+.. _documentation: https://autoremove-torrents.readthedocs.io/en/latest/inst.html
 
 Screenshot
 -----------

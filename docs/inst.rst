@@ -24,6 +24,54 @@ Install from GitHub
    cd autoremove-torrents
    python3 setup.py install
 
+Install from Docker
++++++++++++++++++++
+
+A prebuilt image is published on GHCR:
+
+.. code-block:: bash
+
+   docker pull ghcr.io/sysit/autoremove-torrents:1.6.1
+
+Run it with your configuration mounted in (use ``--view`` first to preview what would be removed):
+
+.. code-block:: bash
+
+   docker run --rm \
+     -v /path/to/config.yml:/etc/autoremove/config.yml:ro \
+     -v /path/to/logs:/app/logs \
+     ghcr.io/sysit/autoremove-torrents:1.6.1 \
+     --view --conf /etc/autoremove/config.yml
+
+The image also runs well as a Kubernetes CronJob. Mount the configuration from a ConfigMap; ``ENTRYPOINT`` is already ``autoremove-torrents``, so only ``args`` are needed:
+
+.. code-block:: yaml
+
+   apiVersion: batch/v1
+   kind: CronJob
+   metadata:
+     name: autoremove-torrents
+   spec:
+     schedule: "0 * * * *"
+     concurrencyPolicy: Forbid
+     jobTemplate:
+       spec:
+         template:
+           spec:
+             containers:
+             - name: autoremove
+               image: ghcr.io/sysit/autoremove-torrents:1.6.1
+               imagePullPolicy: IfNotPresent
+               args: ["--conf", "/etc/autoremove/config.yml"]
+               volumeMounts:
+               - name: config-volume
+                 mountPath: /etc/autoremove
+             restartPolicy: OnFailure
+             volumes:
+             - name: config-volume
+               configMap:
+                 name: autoremove
+
 Run
 ---
 
@@ -45,7 +93,7 @@ Arguments List
 .. list-table::
    :header-rows: 1
 
-   * - Arugments
+   * - Arguments
      - Argument Abbreviations
      - Description
    * - `--view`
@@ -56,13 +104,18 @@ Arguments List
      - Specify the path of the configuration file.
    * - `--task`
      - `-t`
-     - Run a specific task only. The argument value is the task name.
+     - Run a specific task only. The argument value is the task name. An unknown task name is reported with the list of available tasks.
    * - `--log`
      - `-l`
-     - Sepcify the path of the log file.
+     - Specify the path of the log file.
    * - `--debug`
      - `-d`
      - Enable debug mode and output more logs.
+
+Exit Codes
+++++++++++
+
+``autoremove-torrents`` exits with ``0`` on success, ``1`` when the configuration is invalid or one or more tasks fail (e.g. login failure, connection failure), and ``255`` when the command line arguments are invalid. Schedulers such as cron can use the exit code to detect failed runs.
 
 For example:
 
