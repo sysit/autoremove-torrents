@@ -1,0 +1,10 @@
+.git
+venv
+pytest
+docs
+examples
+*.log
+autoremovetorrents.egg-info
+resume.sh
+Dockerfile
+.dockerignore
